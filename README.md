@@ -1,115 +1,90 @@
-# PyPI Package Template
+# Kijiji Bot
 
-[![pypi](https://img.shields.io/pypi/v/hello-bot)](https://pypi.org/project/hello-bot)
-![pyversions](https://img.shields.io/pypi/pyversions/hello-bot)
-[![ci](https://github.com/george-lim/pypi-package-template/workflows/CI/badge.svg)](https://github.com/george-lim/pypi-package-template/actions)
-[![codecov](https://codecov.io/gh/george-lim/pypi-package-template/branch/main/graph/badge.svg)](https://codecov.io/gh/george-lim/pypi-package-template)
-[![license](https://img.shields.io/github/license/george-lim/pypi-package-template)](https://github.com/george-lim/pypi-package-template/blob/main/LICENSE)
+[![pypi](https://img.shields.io/pypi/v/kijiji-bot)](https://pypi.org/project/kijiji-bot)
+![pyversions](https://img.shields.io/pypi/pyversions/kijiji-bot)
+[![ci](https://github.com/george-lim/kijiji-bot/workflows/CI/badge.svg)](https://github.com/george-lim/kijiji-bot/actions)
+[![license](https://img.shields.io/github/license/george-lim/kijiji-bot)](https://github.com/george-lim/kijiji-bot/blob/main/LICENSE)
 
 ## [Usage](#usage) | [Features](#features) | [Examples](#examples) | [CI/CD](#cicd)
 
-PyPI Package Template is a template repository that provides CI/CD workflows for PyPI packages. Hello Bot is a template PyPI package.
+Kijiji Bot is a Python library to repost ads on Kijiji with the Kijiji API.
+The API is provided by [Kijiji-Repost-Headless](https://github.com/ArthurG/Kijiji-Repost-Headless).
 
 ## Usage
 
 ```bash
-python3 -m pip install hello-bot
+python3 -m pip install kijiji-bot
 ```
 
-This installs Hello Bot and its dependencies. Once installed, add `import hello_bot` to a Python script to begin using Hello Bot.
+This installs Kijiji Bot and its dependencies. Once installed, add `import kijiji_bot` to a Python script to begin using Kijiji Bot.
+
+> Note: you will need to create your ads with [Kijiji-Repost-Headless](https://github.com/ArthurG/Kijiji-Repost-Headless) first before using Kijiji Bot. Kijiji Bot will scan for ads in a specified root folder.
 
 ## Features
 
-Hello Bot accepts a name and can provide two features.
+Kijiji Bot accepts a SSID cookie value to authenticate the user. To get this value:
 
-1. Print a hello message with the provided name.
-2. Check whether a URL is reachable.
+1. Log into Kijiji on any browser, with `Keep me signed in` checked
+2. Using a web inspector, copy the value of the `ssid` cookie in the domain `www.kijiji.ca`
+
+Ensure that you do not log out of the Kijiji session afterwards. If you do, you will need another SSID cookie value to authenticate again.
+
+### Multi-ad Reposting
+
+Kijiji Bot will recursively find all ads in a specified root folder. The following is a valid folder structure for ads:
+
+```text
+ads
+├── test_ad_1
+│   ├── item.yaml
+│   └── 1.JPG
+└── test_ad_2
+    ├── item.yaml
+    └── 1.JPG
+```
+
+### Duplicate Ad Checking
+
+Kijiji automatically deletes newly posted ads if they appear to be duplicates of existing ads. With the `post_delay_seconds` parameter, users can specify how long the bot waits before checking for duplicate ads. The default value is thirty seconds. Duplicate ad checking can be disabled entirely if the value is set to zero.
+
+### Alternate Ad Support
+
+With the `is_using_alternate_ad` flag, users can specify whether they want to repost ads using alternate details. This greatly reduces the chances of having reposted ads removed by Kijiji.
+
+Add the following four fields to your ad's `item.yaml` file to specify alternate ad details:
+
+```yaml
+postAdForm.alternateTitle: Alternate ad title
+postAdForm.alternateCity: New York
+postAdForm.alternateAddressCity: New York
+postAdForm.alternateDescription: Alternate ad description
+```
 
 ## Examples
 
-### Print hello message
+### Repost ads
 
-This snippet prints a hello message.
-
-```python
-from hello_bot import HelloBot
-
-name = "George"
-bot = HelloBot(name)
-
-bot.print_hello_message()
-# > Hello George!
-```
-
-### URL reachability check
-
-This snippet checks whether [George's website](https://george-lim.github.io) is reachable.
+This snippet logs into Kijiji and reposts ads.
 
 ```python
-from hello_bot import HelloBot
+from pathlib import Path
 
-print(HelloBot.is_url_reachable("https://george-lim.github.io"))
-# > true
+from kijiji_bot import KijijiBot, KijijiBotException
+
+ssid = ""
+ads_path = Path("ads")
+is_using_alternate_ads = False
+post_delay_seconds = 0
+
+try:
+    bot = KijijiBot(ssid)
+    bot.repost_ads(ads_path, is_using_alternate_ads, post_delay_seconds)
+except KijijiBotException as exception:
+    exception.dump()
+    raise
 ```
 
 ## CI/CD
-
-### Pipeline
-
-There are three workflows in this repository. Each workflow supports manual triggering.
-
-The `CI` workflow is automatically triggered whenever there is push activity in `main` or pull request activity towards `main`. It has two jobs:
-
-1. Lint the codebase with GitHub's [Super-Linter](https://github.com/github/super-linter).
-2. Run unit tests with `pytest`, generate a code coverage report, and upload the report to [Codecov](https://codecov.io/gh/george-lim/pypi-package-template).
-
-Both `CD` workflows build and publish the PyPI package. Manual triggering requires a deploy version that follows [Semantic Versioning](https://semver.org). Alternatively, you may specify `AUTO` as the deploy version and the workflow will automatically find the latest version and increment it accordingly.
-
-The `CD (staging)` workflow can only be triggered manually. It has one job:
-
-1. Build and publish the PyPI package to [TestPyPI](https://test.pypi.org/project/hello-bot).
-
-Using the `AUTO` keyword will increment the current version build.
-
-```text
-current version -> next version
-None            -> 1.0.0+1
-1.0.0+1         -> 1.0.0+2
-1.0.0+2         -> 1.0.0+3
-1.0.0+3         -> 1.0.0+4
-...
-```
-
-If the latest version is an official release (without a build), then the patch version is incremented as well.
-
-> Note: `AUTO` will never create an official release. That is done externally with the `CD (production)` workflow.
-
-```text
-current version -> next version
-...
-1.0.0+4         -> 1.0.0+5
-1.0.0+5         -> 1.0.0   < official release
-1.0.0           -> 1.0.1+1
-1.0.1+1         -> 1.0.1+2
-1.0.1+2         -> 1.0.1+3
-1.0.1+3         -> 1.0.1+4
-...
-```
-
-The `CD (production)` workflow is automatically triggered whenever there is a tag pushed to the repository. It has one job:
-
-1. Build and publish the PyPI package with the tag version to [PyPI](https://pypi.org/project/hello-bot) and [TestPyPI](https://test.pypi.org/project/hello-bot), then create a GitHub release.
-
-Using the `AUTO` keyword will increment the current patch version.
-
-```text
-current version -> next version
-None            -> 1.0.0
-1.0.0           -> 1.0.1
-1.0.1           -> 1.0.2
-1.0.2           -> 1.0.3
-...
-```
 
 ### Secrets
 
@@ -122,9 +97,3 @@ TESTPYPI_PASSWORD: '********'
 ```
 
 These secrets must exist in the repository for `CD` workflows to publish the PyPI package.
-
-### Codecov
-
-You will need to authorize Codecov with your GitHub account in order to upload code coverage reports.
-
-Follow the [Codecov GitHub Action](https://github.com/codecov/codecov-action) to see how to configure the action for private repositories.
