@@ -1,7 +1,6 @@
 import logging
 from functools import reduce
 from pathlib import Path
-from re import sub
 from time import sleep, strftime
 
 import yaml
@@ -11,36 +10,25 @@ from requests.utils import add_dict_to_cookiejar
 
 class KijijiBotException(Exception):
     def __init__(self, message="Kijiji Bot exception encountered.", html_dump=None):
-        self.ad_title = ""
+        self.ad_title = "Unknown Ad Title"
         self.message = message
+        self.html_dump_filename = f"kijiji_bot_dump_{strftime('%Y%m%dT%H%M%S')}.html"
         self.html_dump = html_dump
 
     def __str__(self):
         message_prefix = f"{self.ad_title}:\n" if self.ad_title else ""
-        message_suffix = " (dump available)" if self.html_dump else ""
+
+        message_suffix = (
+            f" (dump available)\n{self.html_dump_filename}" if self.html_dump else ""
+        )
+
         return f"{message_prefix}{self.message}{message_suffix}"
-
-    def set_ad_title(self, ad_title):
-        self.ad_title = ad_title
-
-    def get_valid_filename(self, string):
-        string = string.strip().lower().replace(" ", "_")
-        return sub(r"(?u)[^-\w.]", "", string)
 
     def dump(self, path_str="."):
         if self.html_dump:
-            filename_prefix = (
-                self.get_valid_filename(self.ad_title)
-                if self.ad_title
-                else "kijiji_bot_dump"
-            )
-
-            dump_path = Path(path_str).joinpath(
-                f"{filename_prefix}_{strftime('%Y%m%dT%H%M%S')}.html"
-            )
-
-            dump_path.parent.mkdir(0o755, True, True)
-            dump_path.write_text(self.html_dump)
+            html_dump_path = Path(path_str).joinpath(self.html_dump_filename)
+            html_dump_path.parent.mkdir(0o755, True, True)
+            html_dump_path.write_text(self.html_dump)
 
 
 class KijijiBotRepostException(KijijiBotException):
@@ -62,7 +50,7 @@ class KijijiBot(kijiji_api.KijijiApi):
     def __init__(self, ssid):
         super().__init__()
 
-        logging.info("Logging in with SSID...")
+        logging.info("Logging in with SSID cookie value...")
         add_dict_to_cookiejar(self.session.cookies, {"ssid": ssid})
 
         if not self.is_logged_in():
@@ -75,7 +63,7 @@ class KijijiBot(kijiji_api.KijijiApi):
         return reduce(lambda x, y: x + self.get_ad_file_paths(y), path.iterdir(), [])
 
     def repost_ads(self, ads_path, is_using_alternate_ads=False, post_delay_seconds=30):
-        logging.info("Deleting all ads...")
+        logging.info("Deleting ads...")
         [self.delete_ad(ad["id"]) for ad in self.get_all_ads()]
 
         exceptions = []
@@ -128,7 +116,7 @@ class KijijiBot(kijiji_api.KijijiApi):
                         raise KijijiBotException("duplicate ad removed by Kijiji")
             except KijijiBotException as exception:
                 logging.warn(f"Failed to post ad: {ad_title}")
-                exception.set_ad_title(ad_title)
+                exception.ad_title = ad_title
                 exceptions.append(exception)
 
         if exceptions:
