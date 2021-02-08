@@ -89,11 +89,11 @@ except KijijiBotException as exception:
 ### Secrets
 
 ```yaml
-PYPI_USERNAME: '__token__'
-PYPI_PASSWORD: '********'
+PYPI_USERNAME: __token__
+PYPI_PASSWORD: "********"
 
-TESTPYPI_USERNAME: '__token__'
-TESTPYPI_PASSWORD: '********'
+TESTPYPI_USERNAME: __token__
+TESTPYPI_PASSWORD: "********"
 ```
 
 These secrets must exist in the repository for `CD` workflows to publish the PyPI package.
