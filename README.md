@@ -72,7 +72,9 @@ from pathlib import Path
 from kijiji_bot import KijijiBot, KijijiBotException
 
 ssid = ""
+
 ads_path = Path("ads")
+
 is_using_alternate_ads = False
 post_delay_seconds = 0
 
@@ -97,3 +99,10 @@ TESTPYPI_PASSWORD: "********"
 ```
 
 These secrets must exist in the repository for `CD` workflows to publish the PyPI package.
+
+```yaml
+SCHEDULE_KIJIJI_ADS_URL: https://...
+SCHEDULE_KIJIJI_SSID: MTAyMDk5OTE1Mnxl...
+```
+
+These secrets must exist in the repository for `Schedule` workflow to periodically repost ads.
